@@ -849,7 +849,14 @@ async function init(){
   try{
     await loadRestaurant();
     document.getElementById('ls-name').textContent = R.name;
-    await Promise.all([ loadCats(), loadItems(), loadTables(), loadHours(), loadSpecials() ]);
+    // Load non-critical tables gracefully — don't crash if table missing
+    await Promise.all([
+      loadCats(),
+      loadItems(),
+      loadTables(),
+      loadHours().catch(()=>{ HOURS=[]; }),
+      loadSpecials().catch(()=>{ SPECIALS=[]; }),
+    ]);
     applyTemplate();
     renderAll();
     setupFABs();
@@ -857,26 +864,49 @@ async function init(){
     document.getElementById('ls').classList.add('out');
     setTimeout(()=>document.getElementById('ls')?.remove(),700);
   }catch(e){
-    showErr('Menü yüklenirken hata oluştu.');
-    console.error(e);
+    console.error('Menu init error:', e);
+    showErr('Menü yüklenirken hata oluştu.<br><small style="opacity:.6">'+e.message+'</small>');
   }
 }
 
 async function loadRestaurant(){
-  const{data,error}=await sb.from('restaurants').select('*').eq('slug',SLUG).eq('is_active',true).single();
-  if(error||!data) throw new Error('not found');
+  // Don't filter on is_active — null values (old records) would be excluded
+  const{data,error}=await sb.from('restaurants').select('*').eq('slug',SLUG).single();
+  if(error||!data) throw new Error('Restoran bulunamadı: '+SLUG);
+  // If explicitly suspended (is_active = false), show message
+  if(data.is_active===false) throw new Error('Bu menü şu an aktif değil.');
   R=data;
   cardLayout = R.card_layout||'classic';
-  catStyle = R.category_style||'pills';
-  lang = R.menu_language==='en' ? 'en' : 'tr';
+  catStyle   = R.category_style||'pills';
+  lang       = R.menu_language==='en' ? 'en' : 'tr';
   document.title = R.name+' — Menü';
 }
 
-async function loadCats(){ const{data}=await sb.from('categories').select('*').eq('restaurant_id',R.id).eq('is_active',true).order('sort_order'); CATS=data||[]; }
-async function loadItems(){ const{data}=await sb.from('menu_items').select('*').eq('restaurant_id',R.id).order('sort_order'); ITEMS=data||[]; }
-async function loadTables(){ const{data}=await sb.from('tables').select('*').eq('restaurant_id',R.id).eq('is_active',true).order('table_number'); TABLES=data||[]; }
-async function loadHours(){ const{data}=await sb.from('working_hours').select('*').eq('restaurant_id',R.id); HOURS=data||[]; }
-async function loadSpecials(){ const{data}=await sb.from('daily_specials').select('*,menu_items(*)').eq('restaurant_id',R.id).eq('is_active',true); SPECIALS=data||[]; }
+async function loadCats(){
+  const{data,error}=await sb.from('categories').select('*').eq('restaurant_id',R.id).order('sort_order');
+  if(error) console.warn('loadCats error:',error.message);
+  CATS=(data||[]).filter(c=>c.is_active!==false); // null = active
+}
+async function loadItems(){
+  const{data,error}=await sb.from('menu_items').select('*').eq('restaurant_id',R.id).order('sort_order');
+  if(error) console.warn('loadItems error:',error.message);
+  ITEMS=data||[];
+}
+async function loadTables(){
+  const{data,error}=await sb.from('tables').select('*').eq('restaurant_id',R.id).order('table_number');
+  if(error) console.warn('loadTables error:',error.message);
+  TABLES=(data||[]).filter(t=>t.is_active!==false);
+}
+async function loadHours(){
+  const{data,error}=await sb.from('working_hours').select('*').eq('restaurant_id',R.id);
+  if(error) throw error; // caught by init with .catch()
+  HOURS=data||[];
+}
+async function loadSpecials(){
+  const{data,error}=await sb.from('daily_specials').select('*,menu_items(*)').eq('restaurant_id',R.id).eq('is_active',true);
+  if(error) throw error; // caught by init with .catch()
+  SPECIALS=data||[];
+}
 
 // ═══════════════════════════════════════════════
 // TEMPLATE APPLICATION
