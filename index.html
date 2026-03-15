@@ -885,6 +885,18 @@ hr.dv{border:none;border-top:1px solid var(--bo);margin:13px 0}
           <label class="tag-lbl"><input type="checkbox" value="vegetarian" onchange="tck(this)"> 🥦 Vej.</label>
         </div>
       </div>
+      <div class="ff full"><label class="fl">Allerjenler</label>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px" id="alg-row">
+          <label class="tag-lbl"><input type="checkbox" value="gluten" onchange="tck(this)"> 🌾 Gluten</label>
+          <label class="tag-lbl"><input type="checkbox" value="dairy" onchange="tck(this)"> 🥛 Süt</label>
+          <label class="tag-lbl"><input type="checkbox" value="eggs" onchange="tck(this)"> 🥚 Yumurta</label>
+          <label class="tag-lbl"><input type="checkbox" value="nuts" onchange="tck(this)"> 🌰 Kuruyemiş</label>
+          <label class="tag-lbl"><input type="checkbox" value="peanuts" onchange="tck(this)"> 🥜 Fıstık</label>
+          <label class="tag-lbl"><input type="checkbox" value="fish" onchange="tck(this)"> 🐟 Balık</label>
+          <label class="tag-lbl"><input type="checkbox" value="shellfish" onchange="tck(this)"> 🦐 Kabuklu</label>
+          <label class="tag-lbl"><input type="checkbox" value="soy" onchange="tck(this)"> 🫘 Soya</label>
+        </div>
+      </div>
       <div class="ff full"><label class="fl">Fotoğraf</label>
         <div class="iu"><input type="file" accept="image/*" onchange="upImg(this,'item')"><span class="ic2">📷</span><p>Ürün fotoğrafı</p><small>800×600 önerilen</small><img class="ip" id="it-img-p"></div>
         <input type="hidden" id="it-img-u">
@@ -1271,7 +1283,7 @@ function tck(input){input.closest('label').classList.toggle('ck',input.checked);
 function openItemMo(){
   ['item-id','it-n','it-en','it-d','it-den','it-p','it-dp','it-cal','it-img-u'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('it-av').checked=true;document.getElementById('it-ft').checked=false;
-  document.querySelectorAll('#tag-row input[type=checkbox]').forEach(c=>{c.checked=false;c.closest('label').classList.remove('ck');});
+  document.querySelectorAll('#tag-row input[type=checkbox],#alg-row input[type=checkbox]').forEach(c=>{c.checked=false;c.closest('label').classList.remove('ck');});
   const p=document.getElementById('it-img-p');if(p)p.style.display='none';
   upUrls.item=null;document.getElementById('item-tt').textContent='Ürün Ekle';omo('m-item');
 }
@@ -1283,7 +1295,14 @@ function editItem(id){
   sv('it-dp',i.discount_price||'');sv('it-cal',i.calories||'');
   document.getElementById('it-av').checked=i.is_available;
   document.getElementById('it-ft').checked=i.is_featured;
-  document.querySelectorAll('#tag-row input[type=checkbox]').forEach(c=>{c.checked=(i.tags||[]).includes(c.value);c.closest('label').classList.toggle('ck',c.checked);});
+  // Tags
+  document.querySelectorAll('#tag-row input[type=checkbox]').forEach(c=>{
+    c.checked=(i.tags||[]).includes(c.value);c.closest('label').classList.toggle('ck',c.checked);
+  });
+  // Allergens
+  document.querySelectorAll('#alg-row input[type=checkbox]').forEach(c=>{
+    c.checked=(i.allergens||[]).includes(c.value);c.closest('label').classList.toggle('ck',c.checked);
+  });
   if(i.image_url){showIP('it-img-p',i.image_url);sv('it-img-u',i.image_url);}
   else{const p=document.getElementById('it-img-p');if(p)p.style.display='none';}
   upUrls.item=null;document.getElementById('item-tt').textContent='Ürün Düzenle';omo('m-item');
@@ -1294,8 +1313,21 @@ async function saveItem(){
   if(!name){toast('⚠️','Ürün adı gerekli');return;}
   const price=parseFloat(document.getElementById('it-p').value)||0;
   const tags=[...document.querySelectorAll('#tag-row input[type=checkbox]:checked')].map(c=>c.value);
+  const allergens=[...document.querySelectorAll('#alg-row input[type=checkbox]:checked')].map(c=>c.value);
   const id=document.getElementById('item-id').value;
-  const payload={restaurant_id:R.id,name,name_en:document.getElementById('it-en').value.trim()||null,description:document.getElementById('it-d').value.trim()||null,description_en:document.getElementById('it-den').value.trim()||null,category_id:document.getElementById('it-cat').value||null,price,discount_price:parseFloat(document.getElementById('it-dp').value)||null,calories:parseInt(document.getElementById('it-cal').value)||null,is_available:document.getElementById('it-av').checked,is_featured:document.getElementById('it-ft').checked,tags,image_url:upUrls.item||document.getElementById('it-img-u').value||null};
+  const payload={
+    restaurant_id:R.id, name,
+    name_en:document.getElementById('it-en').value.trim()||null,
+    description:document.getElementById('it-d').value.trim()||null,
+    description_en:document.getElementById('it-den').value.trim()||null,
+    category_id:document.getElementById('it-cat').value||null,
+    price, discount_price:parseFloat(document.getElementById('it-dp').value)||null,
+    calories:parseInt(document.getElementById('it-cal').value)||null,
+    is_available:document.getElementById('it-av').checked,
+    is_featured:document.getElementById('it-ft').checked,
+    tags, allergens,
+    image_url:upUrls.item||document.getElementById('it-img-u').value||null
+  };
   const{error}=id?await sb.from('menu_items').update(payload).eq('id',id):await sb.from('menu_items').insert(payload);
   if(!error){cmo('m-item');loadItems();toast('✅','Ürün kaydedildi');}else toast('❌',error.message);
 }
