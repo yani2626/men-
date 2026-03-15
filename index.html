@@ -616,8 +616,6 @@ hr.dv{border:none;border-top:1px solid var(--bo);margin:13px 0}
           <div class="card" style="margin-bottom:12px">
             <div class="card-t">Arka Plan Deseni</div>
             <div class="pat-grid" id="pat-grid"></div>
-            <div class="card-t" style="margin-top:13px">Desen Kapsamı</div>
-            <div class="ly-g" style="grid-template-columns:repeat(3,1fr)" id="pat-scope-grid"></div>
           </div>
           <!-- Card Customization -->
           <div class="card" style="margin-bottom:12px">
@@ -632,19 +630,9 @@ hr.dv{border:none;border-top:1px solid var(--bo);margin:13px 0}
             <div class="sh-grid" id="sh-grid"></div>
             <div class="card-t" style="margin-top:13px">Fiyat Etiketi Stili</div>
             <div class="ps-grid" id="ps-grid"></div>
-            <div class="card-t" style="margin-top:13px">Kategori Buton Şekli</div>
-            <div class="ly-g" style="grid-template-columns:repeat(3,1fr)" id="pill-shape-grid"></div>
           </div>
-          <!-- Bg Color + Extra Toggles -->
+          <!-- Extra Toggles + Welcome -->
           <div class="card" style="margin-bottom:12px">
-            <div class="card-t">Arka Plan Rengi (Bağımsız)</div>
-            <p style="font-size:11px;color:var(--tx3);margin-bottom:10px">Boş bırakırsanız ana renk kullanılır</p>
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-              <input type="color" id="bg-color-pick" style="width:32px;height:30px;border-radius:5px;border:1px solid var(--bo2);background:none;padding:2px;cursor:pointer" onchange="syncCP('bg-color-pick','bg-color-txt')">
-              <input type="text" class="fi" id="bg-color-txt" placeholder="#f7f7f5 (boş = ana renk)" oninput="syncCT('bg-color-txt','bg-color-pick')">
-              <button class="btn b-gh btn-sm" onclick="clearBgColor()">✕ Temizle</button>
-            </div>
-            <hr class="dv">
             <div class="card-t">Menüde Gösterimler</div>
             <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
               <div style="display:flex;align-items:center;justify-content:space-between">
@@ -660,8 +648,8 @@ hr.dv{border:none;border-top:1px solid var(--bo);margin:13px 0}
             <div class="card-t">Karşılama Mesajı</div>
             <p style="font-size:11px;color:var(--tx3);margin-bottom:8px">Menü ilk açıldığında üstte gösterilir. Boş bırakırsanız görünmez.</p>
             <div class="fg">
-              <div class="ff"><label class="fl">Mesaj (TR)</label><textarea class="fta" id="welcome-tr" style="min-height:52px" placeholder="Hoş geldiniz! Lezzetli yemekler için doğru yerdesiniz 🎉"></textarea></div>
-              <div class="ff"><label class="fl">Mesaj (EN)</label><textarea class="fta" id="welcome-en" style="min-height:52px" placeholder="Welcome! You're in the right place for great food 🎉"></textarea></div>
+              <div class="ff"><label class="fl">Mesaj (TR)</label><textarea class="fta" id="welcome-tr" style="min-height:52px" placeholder="Hoş geldiniz! 🎉"></textarea></div>
+              <div class="ff"><label class="fl">Mesaj (EN)</label><textarea class="fta" id="welcome-en" style="min-height:52px" placeholder="Welcome! 🎉"></textarea></div>
             </div>
           </div>
           <div style="display:flex;justify-content:flex-end">
@@ -1608,50 +1596,19 @@ function buildAppearance(){
       <div class="ps-ex">${p.ex(ac)}</div><div class="ps-nm">${p.nm}</div>
     </div>`).join('');
 
-  // Pattern scope
-  const patScopes=[
-    {id:'page',   ic:'🖼️', nm:'Tüm Sayfa'},
-    {id:'cards',  ic:'▦',  nm:'Sadece Kartlar'},
-    {id:'both',   ic:'⊞',  nm:'İkisi de'},
-  ];
-  const psg2=document.getElementById('pat-scope-grid');
-  if(psg2) psg2.innerHTML=patScopes.map(s=>`
-    <div class="lc${(R?.bg_pattern_scope||'page')===s.id?' sel':''}" data-patscope="${s.id}" onclick="selPatScope('${s.id}')">
-      <div class="lc-ic">${s.ic}</div><div class="lc-nm">${s.nm}</div>
-    </div>`).join('');
-
-  // Pill shapes
-  const pillShapes=[
-    {id:'rounded',   ic:'💊', nm:'Yuvarlak'},
-    {id:'square',    ic:'⬜', nm:'Köşeli'},
-    {id:'underline', ic:'_A', nm:'Altı Çizgili'},
-  ];
-  const psh=document.getElementById('pill-shape-grid');
-  if(psh) psh.innerHTML=pillShapes.map(s=>`
-    <div class="lc${(R?.pill_shape||'rounded')===s.id?' sel':''}" data-pillshape="${s.id}" onclick="selPillShape('${s.id}')">
-      <div class="lc-ic" style="font-size:16px">${s.ic}</div><div class="lc-nm">${s.nm}</div>
-    </div>`).join('');
-
   // Radius slider
   const rs=document.getElementById('radius-slider');
   const rv=document.getElementById('radius-val');
   if(rs){rs.value=R?.card_radius||12;}
   if(rv)rv.textContent=(R?.card_radius||12)+'px';
 
-  // Colors + new fields
+  // Colors + toggles + welcome
   if(R){
     sc('p',R.primary_color||'#f7f7f5');
     sc('a',R.accent_color||'#1a1a1a');
     const fs=document.getElementById('fsel');if(fs)fs.value=R.font_family||'Inter';
-    // Bg color
-    const bgp=document.getElementById('bg-color-pick');
-    const bgt=document.getElementById('bg-color-txt');
-    if(R.bg_color){if(bgp)bgp.value=R.bg_color;if(bgt)bgt.value=R.bg_color;}
-    else{if(bgt)bgt.value='';}
-    // Toggles
     const tc=document.getElementById('tog-cal');if(tc)tc.checked=R.show_calories!==false;
     const tp=document.getElementById('tog-prep');if(tp)tp.checked=R.show_prep_time===true;
-    // Welcome msg
     const wt=document.getElementById('welcome-tr');if(wt)wt.value=R.welcome_msg||'';
     const we=document.getElementById('welcome-en');if(we)we.value=R.welcome_msg_en||'';
   }
@@ -1665,10 +1622,7 @@ function selTpl(id){
 function selLayout(id){document.querySelectorAll('[data-layout]').forEach(c=>c.classList.toggle('sel',c.dataset.layout===id));updPrev();}
 function selCS(id){document.querySelectorAll('[data-catstyle]').forEach(c=>c.classList.toggle('sel',c.dataset.catstyle===id));updPrev();}
 function selPat(id){document.querySelectorAll('[data-pat]').forEach(c=>c.classList.toggle('sel',c.dataset.pat===id));updPrev();}
-function selPatScope(id){document.querySelectorAll('[data-patscope]').forEach(c=>c.classList.toggle('sel',c.dataset.patscope===id));updPrev();}
-function selPillShape(id){document.querySelectorAll('[data-pillshape]').forEach(c=>c.classList.toggle('sel',c.dataset.pillshape===id));updPrev();}
 function selShadow(id){document.querySelectorAll('[data-shadow]').forEach(c=>c.classList.toggle('sel',c.dataset.shadow===id));updPrev();}
-function clearBgColor(){const p=document.getElementById('bg-color-pick');const t=document.getElementById('bg-color-txt');if(t)t.value='';updPrev();}
 function selPS(id){
   document.querySelectorAll('[data-ps]').forEach(c=>c.classList.toggle('sel',c.dataset.ps===id));
   const ac=document.getElementById('ac')?.value||R?.accent_color||'#6c63ff';
@@ -1799,25 +1753,21 @@ function updPrev(){
 
 async function saveAppearance(){
   if(!R)return;
-  const bgColorVal=document.getElementById('bg-color-txt')?.value.trim();
   const upd={
-    template_id:      document.querySelector('.tc.sel')?.dataset.tpl              ||R.template_id,
-    card_layout:      document.querySelector('[data-layout].sel')?.dataset.layout  ||R.card_layout||'classic',
-    category_style:   document.querySelector('[data-catstyle].sel')?.dataset.catstyle||R.category_style||'pills',
-    primary_color:    document.getElementById('pc')?.value    ||R.primary_color,
-    accent_color:     document.getElementById('ac')?.value    ||R.accent_color,
-    font_family:      document.getElementById('fsel')?.value  ||R.font_family,
-    bg_pattern:       document.querySelector('[data-pat].sel')?.dataset.pat        ||R.bg_pattern||'none',
-    bg_pattern_scope: document.querySelector('[data-patscope].sel')?.dataset.patscope||R.bg_pattern_scope||'page',
-    card_radius:      parseInt(document.getElementById('radius-slider')?.value)    ||R.card_radius||12,
-    card_shadow:      document.querySelector('[data-shadow].sel')?.dataset.shadow  ||R.card_shadow||'soft',
-    price_style:      document.querySelector('[data-ps].sel')?.dataset.ps          ||R.price_style||'plain',
-    pill_shape:       document.querySelector('[data-pillshape].sel')?.dataset.pillshape||R.pill_shape||'rounded',
-    bg_color:         (bgColorVal&&/^#[0-9a-f]{6}$/i.test(bgColorVal))?bgColorVal:null,
-    show_calories:    document.getElementById('tog-cal')?.checked!==false,
-    show_prep_time:   document.getElementById('tog-prep')?.checked===true,
-    welcome_msg:      document.getElementById('welcome-tr')?.value.trim()||null,
-    welcome_msg_en:   document.getElementById('welcome-en')?.value.trim()||null,
+    template_id:    document.querySelector('.tc.sel')?.dataset.tpl              ||R.template_id,
+    card_layout:    document.querySelector('[data-layout].sel')?.dataset.layout  ||R.card_layout||'classic',
+    category_style: document.querySelector('[data-catstyle].sel')?.dataset.catstyle||R.category_style||'pills',
+    primary_color:  document.getElementById('pc')?.value    ||R.primary_color,
+    accent_color:   document.getElementById('ac')?.value    ||R.accent_color,
+    font_family:    document.getElementById('fsel')?.value  ||R.font_family,
+    bg_pattern:     document.querySelector('[data-pat].sel')?.dataset.pat        ||R.bg_pattern||'none',
+    card_radius:    parseInt(document.getElementById('radius-slider')?.value)    ||R.card_radius||12,
+    card_shadow:    document.querySelector('[data-shadow].sel')?.dataset.shadow  ||R.card_shadow||'soft',
+    price_style:    document.querySelector('[data-ps].sel')?.dataset.ps          ||R.price_style||'plain',
+    show_calories:  document.getElementById('tog-cal')?.checked!==false,
+    show_prep_time: document.getElementById('tog-prep')?.checked===true,
+    welcome_msg:    document.getElementById('welcome-tr')?.value.trim()||null,
+    welcome_msg_en: document.getElementById('welcome-en')?.value.trim()||null,
   };
   const{error}=await sb.from('restaurants').update(upd).eq('id',R.id);
   if(!error){toast('✅','Görünüm kaydedildi');R={...R,...upd};}else toast('❌',error.message);
