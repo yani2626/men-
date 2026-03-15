@@ -933,17 +933,41 @@ async function loadSpecials(){
 // ═══════════════════════════════════════════════
 // TEMPLATE APPLICATION
 // ═══════════════════════════════════════════════
-// Pattern CSS map — used both in applyTemplate and card rendering
-const PAT_CSS = {
-  none:     '',
-  dots:     `background-image:radial-gradient(circle,var(--pat-color,rgba(128,128,128,.12)) 1px,transparent 1px);background-size:16px 16px`,
-  grid:     `background-image:linear-gradient(var(--pat-color,rgba(128,128,128,.1)) 1px,transparent 1px),linear-gradient(90deg,var(--pat-color,rgba(128,128,128,.1)) 1px,transparent 1px);background-size:20px 20px`,
-  diagonal: `background-image:repeating-linear-gradient(45deg,var(--pat-color,rgba(128,128,128,.1)) 0,var(--pat-color,rgba(128,128,128,.1)) 1px,transparent 0,transparent 50%);background-size:12px 12px`,
-  waves:    `background-image:repeating-radial-gradient(circle at 0 0,transparent 0,var(--pat-color,rgba(128,128,128,.08)) 1px,transparent 2px);background-size:14px 14px`,
-  hexagon:  `background-image:url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='10,1 19,6 19,14 10,19 1,14 1,6' fill='none' stroke='rgba(128,128,128,0.12)' stroke-width='1'/%3E%3C/svg%3E")`,
-  cross:    `background-image:url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 0v20M0 9h20' stroke='rgba(128,128,128,0.1)' stroke-width='1'/%3E%3C/svg%3E")`,
-  noise:    `background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E")`,
-};
+// ═══════════════════════════════════════════════
+// PATTERN DEFINITIONS — 12 desen
+// ═══════════════════════════════════════════════
+function getPatternCSS(patId, isDarkBg){
+  const c  = isDarkBg ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
+  const c2 = isDarkBg ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+  const patterns = {
+    'none':      null,
+    'dots':      [`radial-gradient(circle,${c} 1.5px,transparent 1.5px)`,           '16px 16px'],
+    'dots-lg':   [`radial-gradient(circle,${c} 2.5px,transparent 2.5px)`,           '24px 24px'],
+    'grid':      [`linear-gradient(${c} 1px,transparent 1px),linear-gradient(90deg,${c} 1px,transparent 1px)`, '20px 20px'],
+    'grid-lg':   [`linear-gradient(${c} 1px,transparent 1px),linear-gradient(90deg,${c} 1px,transparent 1px)`, '32px 32px'],
+    'diagonal':  [`repeating-linear-gradient(45deg,${c} 0,${c} 1px,transparent 0,transparent 8px)`, '12px 12px'],
+    'diagonal2': [`repeating-linear-gradient(-45deg,${c} 0,${c} 1px,transparent 0,transparent 8px)`,'12px 12px'],
+    'hatch':     [`repeating-linear-gradient(45deg,${c2} 0,${c2} 1px,transparent 0,transparent 8px),repeating-linear-gradient(-45deg,${c2} 0,${c2} 1px,transparent 0,transparent 8px)`,'12px 12px'],
+    'stripes':   [`repeating-linear-gradient(0deg,${c} 0,${c} 1px,transparent 0,transparent 12px)`,'1px 12px'],
+    'waves':     [`repeating-radial-gradient(circle at 0 0,transparent 0,${c} 2px,transparent 3px)`, '14px 14px'],
+    'zigzag':    [`linear-gradient(135deg,${c} 25%,transparent 25%),linear-gradient(225deg,${c} 25%,transparent 25%),linear-gradient(45deg,${c} 25%,transparent 25%),linear-gradient(315deg,${c} 25%,transparent 25%)`,'12px 6px'],
+    'brick':     [`linear-gradient(${c} 1px,transparent 1px),linear-gradient(90deg,${c2} 1px,transparent 1px)`,'20px 10px'],
+  };
+  const p = patterns[patId];
+  if(!p) return null;
+  return { backgroundImage: p[0], backgroundSize: p[1] };
+}
+
+function applyPattern(patId, primaryColor){
+  document.getElementById('pat-style')?.remove();
+  if(!patId || patId==='none') return;
+  const p = getPatternCSS(patId, isDark(primaryColor||'#ffffff'));
+  if(!p) return;
+  const s = document.createElement('style');
+  s.id = 'pat-style';
+  s.textContent = `body{background-image:${p.backgroundImage}!important;background-size:${p.backgroundSize}!important;background-attachment:fixed!important;}`;
+  document.head.appendChild(s);
+}
 
 function applyTemplate(){
   const id = R.template_id||'modern-minimal';
@@ -968,23 +992,7 @@ function applyTemplate(){
   }
 
   // ── Arka Plan Deseni ──────────────────────────────────────
-  const pat = R.bg_pattern||'none';
-  const scope = R.bg_pattern_scope||'page';
-  const patCSS = PAT_CSS[pat]||'';
-
-  if(pat!=='none' && patCSS){
-    if(scope==='page'||scope==='both'){
-      // Tüm sayfaya uygula — body::before pseudo ile
-      const style=document.createElement('style');
-      style.id='pat-style';
-      style.textContent=`body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;${patCSS}}`;
-      document.head.appendChild(style);
-    }
-    if(scope==='cards'||scope==='both'){
-      // Kartlara uygula
-      document.documentElement.style.setProperty('--card-pattern', patCSS);
-    }
-  }
+  applyPattern(R.bg_pattern||'none', R.primary_color);
 
   // ── Kart Radius ───────────────────────────────────────────
   if(R.card_radius!=null){
