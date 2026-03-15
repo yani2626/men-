@@ -2066,10 +2066,29 @@ async function sendEmail(){
 // ═══════════════════════════════
 async function upImg(input,type){
   const file=input.files[0];if(!file)return;
-  const ext=file.name.split('.').pop();
+
+  // Dosya boyutu kontrolü (max 5MB)
+  if(file.size>5*1024*1024){toast('⚠️','Dosya çok büyük — max 5MB');return;}
+
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(!['jpg','jpeg','png','webp','gif'].includes(ext)){toast('⚠️','Sadece JPG, PNG, WebP destekleniyor');return;}
+
   const path=`${R?.id||CU?.id||'tmp'}/${type}-${Date.now()}.${ext}`;
+
+  toast('⏳','Yükleniyor...',10000);
+
   const{data,error}=await sb.storage.from('menu-images').upload(path,file,{upsert:true});
-  if(error){toast('❌','Yükleme hatası: '+error.message);return;}
+
+  if(error){
+    const isBucket=error.message?.toLowerCase().includes('bucket') || error.statusCode===404;
+    if(isBucket){
+      toast('❌','Bucket bulunamadı! Supabase → Storage → New Bucket → "menu-images" (Public: ✅) oluşturun',8000);
+    } else {
+      toast('❌','Yükleme hatası: '+error.message);
+    }
+    return;
+  }
+
   const{data:ud}=sb.storage.from('menu-images').getPublicUrl(path);
   upUrls[type]=ud.publicUrl;
   const m={logo:'logo-p',cover:'cover-p',item:'it-img-p',special:'sp-img-p'};
