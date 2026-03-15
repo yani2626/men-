@@ -933,28 +933,100 @@ async function loadSpecials(){
 // ═══════════════════════════════════════════════
 // TEMPLATE APPLICATION
 // ═══════════════════════════════════════════════
+// Pattern CSS map — used both in applyTemplate and card rendering
+const PAT_CSS = {
+  none:     '',
+  dots:     `background-image:radial-gradient(circle,var(--pat-color,rgba(128,128,128,.12)) 1px,transparent 1px);background-size:16px 16px`,
+  grid:     `background-image:linear-gradient(var(--pat-color,rgba(128,128,128,.1)) 1px,transparent 1px),linear-gradient(90deg,var(--pat-color,rgba(128,128,128,.1)) 1px,transparent 1px);background-size:20px 20px`,
+  diagonal: `background-image:repeating-linear-gradient(45deg,var(--pat-color,rgba(128,128,128,.1)) 0,var(--pat-color,rgba(128,128,128,.1)) 1px,transparent 0,transparent 50%);background-size:12px 12px`,
+  waves:    `background-image:repeating-radial-gradient(circle at 0 0,transparent 0,var(--pat-color,rgba(128,128,128,.08)) 1px,transparent 2px);background-size:14px 14px`,
+  hexagon:  `background-image:url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='10,1 19,6 19,14 10,19 1,14 1,6' fill='none' stroke='rgba(128,128,128,0.12)' stroke-width='1'/%3E%3C/svg%3E")`,
+  cross:    `background-image:url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 0v20M0 9h20' stroke='rgba(128,128,128,0.1)' stroke-width='1'/%3E%3C/svg%3E")`,
+  noise:    `background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E")`,
+};
+
 function applyTemplate(){
   const id = R.template_id||'modern-minimal';
-  // map legacy names to new class names
   const map={'modern-minimal':'t-modern-minimal','dark-dramatic':'t-dark-dramatic',
     'classic-luxury':'t-classic-luxury','colorful-fun':'t-colorful-fun','editorial':'t-editorial',
     'neon-dark':'t-neon-dark','earthy':'t-earthy','pastel-cafe':'t-pastel-cafe',
     'industrial':'t-industrial','mediterranean':'t-mediterranean'};
   document.body.classList.add(map[id]||'t-modern-minimal');
 
-  // Custom colors from admin
-  if(R.primary_color) document.documentElement.style.setProperty('--bg', R.primary_color);
+  // ── Renkler ──────────────────────────────────────────────
+  // Arka plan rengi: bg_color varsa bağımsız, yoksa primary_color
+  const bgColor = R.bg_color || R.primary_color;
+  if(bgColor) document.documentElement.style.setProperty('--bg', bgColor);
+  if(R.primary_color) document.documentElement.style.setProperty('--header-bg', R.primary_color);
   if(R.accent_color){
     document.documentElement.style.setProperty('--accent', R.accent_color);
     const dark = isDark(R.accent_color);
     document.documentElement.style.setProperty('--accent-text', dark?'#fff':'#111');
+    document.documentElement.style.setProperty('--cat-pill-active', R.accent_color);
+    document.documentElement.style.setProperty('--cat-pill-active-text', dark?'#fff':'#111');
+    // Pattern rengi accent'e uygun
+    document.documentElement.style.setProperty('--pat-color', dark?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)');
   }
 
-  // Header
-  const hn = document.getElementById('rest-name');
-  const hd = document.getElementById('rest-desc');
-  hn.textContent = R.name;
-  hd.textContent = R.description||'';
+  // ── Arka Plan Deseni ──────────────────────────────────────
+  const pat = R.bg_pattern||'none';
+  const scope = R.bg_pattern_scope||'page';
+  const patCSS = PAT_CSS[pat]||'';
+
+  if(pat!=='none' && patCSS){
+    if(scope==='page'||scope==='both'){
+      // Tüm sayfaya uygula — body::before pseudo ile
+      const style=document.createElement('style');
+      style.id='pat-style';
+      style.textContent=`body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;${patCSS}}`;
+      document.head.appendChild(style);
+    }
+    if(scope==='cards'||scope==='both'){
+      // Kartlara uygula
+      document.documentElement.style.setProperty('--card-pattern', patCSS);
+    }
+  }
+
+  // ── Kart Radius ───────────────────────────────────────────
+  if(R.card_radius!=null){
+    document.documentElement.style.setProperty('--radius', R.card_radius+'px');
+    document.documentElement.style.setProperty('--radius-sm', Math.max(0,R.card_radius-4)+'px');
+  }
+
+  // ── Kart Gölgesi ─────────────────────────────────────────
+  const shadowMap={
+    none:'none',
+    soft:'0 2px 8px rgba(0,0,0,.07)',
+    medium:'0 4px 16px rgba(0,0,0,.13)',
+    strong:'0 8px 28px rgba(0,0,0,.2)',
+    colored:`0 4px 18px ${R.accent_color||'#666'}50`,
+  };
+  document.documentElement.style.setProperty('--card-shadow', shadowMap[R.card_shadow||'soft']||shadowMap.soft);
+
+  // ── Pill/Tab Şekli ────────────────────────────────────────
+  const ps = R.pill_shape||'rounded';
+  const pillStyle = document.createElement('style');
+  pillStyle.id='pill-style';
+  if(ps==='square'){
+    pillStyle.textContent=`.cat-pill{border-radius:6px!important}.cat-tab{border-radius:0!important}`;
+  } else if(ps==='underline'){
+    pillStyle.textContent=`.cat-pill{border-radius:0!important;background:transparent!important;border-bottom:2px solid transparent!important;padding-bottom:6px!important}
+    .cat-pill.active{background:transparent!important;border-bottom-color:var(--accent)!important;color:var(--accent)!important}`;
+  } else {
+    pillStyle.textContent=`.cat-pill{border-radius:99px!important}`;
+  }
+  document.head.appendChild(pillStyle);
+
+  // ── Fiyat Etiketi Stili ───────────────────────────────────
+  window.PRICE_STYLE = R.price_style||'plain';
+
+  // ── Kalori & Hazırlanma Süresi ────────────────────────────
+  window.SHOW_CALORIES = R.show_calories!==false;
+  window.SHOW_PREP     = R.show_prep_time===true;
+
+  // ── Header içeriği ────────────────────────────────────────
+  document.getElementById('rest-name').textContent = R.name;
+  document.getElementById('rest-desc').textContent = R.description||'';
   document.getElementById('logo-init').textContent = R.name[0].toUpperCase();
   if(R.logo_url){
     document.getElementById('logo-box').innerHTML=`<img src="${R.logo_url}" alt="">`;
@@ -965,23 +1037,26 @@ function applyTemplate(){
     document.getElementById('cover-overlay').style.display='block';
   }
 
-  // Working hours badge
+  // ── Çalışma saatleri ─────────────────────────────────────
   if(R.hours_enabled!==false) renderHoursBadge();
 
-  // Lang toggle
+  // ── Dil toggle ────────────────────────────────────────────
   if(R.menu_language==='both'){
     document.getElementById('lang-toggle').style.display='flex';
   }
 
-  // Allergen filter
+  // ── Allerjen filtresi ─────────────────────────────────────
   if(R.show_allergens===false){
     document.getElementById('allergen-btn').style.display='none';
   }
+
+  // ── Karşılama mesajı ─────────────────────────────────────
+  renderWelcomeMsg();
 }
 
 function renderHoursBadge(){
   const now = new Date();
-  const dow = now.getDay(); // 0=Sun
+  const dow = now.getDay();
   const h = HOURS.find(x=>x.day_of_week===dow);
   const badge = document.getElementById('open-badge');
   badge.style.display='inline-flex';
@@ -989,10 +1064,30 @@ function renderHoursBadge(){
   const [oh,om]=(h.open_time||'0:0').split(':').map(Number);
   const [ch,cm]=(h.close_time||'23:59').split(':').map(Number);
   const mins=now.getHours()*60+now.getMinutes();
-  const openMins=oh*60+om, closeMins=ch*60+cm;
-  const isOpen=mins>=openMins&&mins<closeMins;
+  const isOpen=mins>=(oh*60+om)&&mins<(ch*60+cm);
   badge.className='open-badge '+(isOpen?'open':'closed');
   badge.innerHTML=(isOpen?'● '+t('open')+' · '+h.close_time+' kadar':'● '+t('closed'));
+}
+
+// ── Karşılama Mesajı ────────────────────────────────────────
+function renderWelcomeMsg(){
+  const msg = lang==='en' ? (R.welcome_msg_en||R.welcome_msg) : R.welcome_msg;
+  const container = document.getElementById('special-container');
+  if(!msg) return;
+  // Insert welcome banner before special banner
+  const welcomeDiv = document.createElement('div');
+  welcomeDiv.id = 'welcome-banner';
+  welcomeDiv.style.cssText = `margin:10px 16px 0;padding:12px 16px;border-radius:var(--radius,14px);background:var(--accent,#e8a87c);color:var(--accent-text,#fff);font-size:14px;font-weight:500;line-height:1.5;display:flex;align-items:center;gap:10px;animation:fadeUp .4s ease`;
+  welcomeDiv.innerHTML = `<span style="font-size:20px">👋</span><span>${msg}</span>`;
+  // Add before special container
+  container.parentNode.insertBefore(welcomeDiv, container);
+  // Auto-dismiss after 6 seconds
+  setTimeout(()=>{
+    welcomeDiv.style.transition='opacity .5s,transform .5s';
+    welcomeDiv.style.opacity='0';
+    welcomeDiv.style.transform='translateY(-8px)';
+    setTimeout(()=>welcomeDiv.remove(),500);
+  },6000);
 }
 
 // ═══════════════════════════════════════════════
@@ -1124,18 +1219,42 @@ function renderItemsBlock(items){
 
 // ── CARD RENDERERS ──
 
-function renderClassic(item){
+// ── Fiyat HTML oluşturucu (price_style'a göre) ───────────────
+function priceHTML(item){
   const sym=R?.currency_symbol||'₺';
+  const val=item.discount_price||item.price;
+  const ac=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#333';
+  const atxt=isDark(ac)?'#fff':'#111';
+  const oldPrice=item.discount_price?`<del style="font-size:11px;color:var(--text3);margin-right:5px">${sym}${item.price}</del>`:'';
+  const ps=window.PRICE_STYLE||'plain';
+  const priceSpans={
+    plain:     `${oldPrice}<span class="price-tag">${sym}${val}</span>`,
+    badge:     `${oldPrice}<span style="background:var(--accent);color:${atxt};padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700">${sym}${val}</span>`,
+    underline: `${oldPrice}<span class="price-tag" style="text-decoration:underline;text-underline-offset:2px">${sym}${val}</span>`,
+    highlight: `${oldPrice}<span style="background:var(--accent)22;color:var(--accent);padding:1px 6px;border-radius:4px;font-weight:700">${sym}${val}</span>`,
+    pill:      `${oldPrice}<span style="background:var(--accent);color:${atxt};padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700">${sym}${val}</span>`,
+  };
+  return priceSpans[ps]||priceSpans.plain;
+}
+
+// ── Kalori & süre bilgisi ────────────────────────────────────
+function metaHTML(item){
+  const parts=[];
+  if(window.SHOW_CALORIES && item.calories) parts.push(`<span style="font-size:10px;color:var(--text3)">🔥 ${item.calories} kcal</span>`);
+  if(window.SHOW_PREP && item.prep_time_minutes) parts.push(`<span style="font-size:10px;color:var(--text3)">⏱️ ${item.prep_time_minutes} dk</span>`);
+  return parts.length?`<div style="display:flex;gap:8px;margin-top:3px">${parts.join('')}</div>`:'';
+}
+
+function renderClassic(item){
   const nm=itemName(item), dsc=itemDesc(item);
   return `<div class="card-wrap${item.is_available?'':' na-overlay'} relative" onclick="openDetail('${item.id}')">
     ${item.is_featured?'<div class="featured-dot"></div>':''}
     <div class="card-text">
       <div class="menu-item-name">${nm}</div>
       ${dsc?`<div class="menu-item-desc">${dsc}</div>`:''}
+      ${metaHTML(item)}
       <div class="card-bottom">
-        ${item.discount_price
-          ?`<span class="price-old">${sym}${item.price}</span><span class="price-tag">${sym}${item.discount_price}</span>`
-          :`<span class="price-tag">${sym}${item.price}</span>`}
+        ${priceHTML(item)}
         ${renderTags(item)}
         ${!item.is_available?`<span class="itag itag-na">${t('na')}</span>`:''}
       </div>
@@ -1147,7 +1266,6 @@ function renderClassic(item){
 }
 
 function renderBigPhoto(item){
-  const sym=R?.currency_symbol||'₺';
   const nm=itemName(item), dsc=itemDesc(item);
   return `<div class="card-bigphoto${item.is_available?'':' na-overlay'}" onclick="openDetail('${item.id}')">
     ${item.image_url
@@ -1156,16 +1274,16 @@ function renderBigPhoto(item){
     <div class="card-bigphoto-body">
       <div class="card-bigphoto-top">
         <div class="card-bigphoto-name">${nm}</div>
-        <div class="card-bigphoto-price">${item.discount_price?`<del style="font-size:12px;color:var(--text3);font-weight:400">${sym}${item.price}</del> ${sym}${item.discount_price}`:sym+item.price}</div>
+        <div>${priceHTML(item)}</div>
       </div>
       ${dsc?`<div class="card-bigphoto-desc">${dsc}</div>`:''}
+      ${metaHTML(item)}
       <div class="card-bigphoto-footer">${renderTags(item)}${!item.is_available?`<span class="itag itag-na">${t('na')}</span>`:''}</div>
     </div>
   </div>`;
 }
 
 function renderGrid(item){
-  const sym=R?.currency_symbol||'₺';
   const nm=itemName(item), dsc=itemDesc(item);
   return `<div class="card-grid${item.is_available?'':' na-overlay'}" onclick="openDetail('${item.id}')">
     ${item.image_url
@@ -1174,23 +1292,23 @@ function renderGrid(item){
     <div class="card-grid-body">
       <div class="card-grid-name">${nm}</div>
       ${dsc?`<div class="card-grid-desc">${dsc}</div>`:''}
-      <div class="card-grid-price">${item.discount_price?`<del style="font-size:11px;color:var(--text3);font-weight:400;margin-right:4px">${sym}${item.price}</del>${sym}${item.discount_price}`:sym+item.price}</div>
+      ${metaHTML(item)}
+      <div class="card-grid-price" style="margin-top:4px">${priceHTML(item)}</div>
     </div>
   </div>`;
 }
 
 function renderList(item){
-  const sym=R?.currency_symbol||'₺';
   const nm=itemName(item), dsc=itemDesc(item);
   return `<div class="card-list${item.is_available?'':' na-overlay'}" onclick="openDetail('${item.id}')">
     <div class="card-list-icon">${item.image_url?`<img src="${item.image_url}" style="width:36px;height:36px;border-radius:8px;object-fit:cover">`:catIcon(item.category_id)}</div>
     <div class="card-list-info">
       <div class="card-list-name">${nm}</div>
       ${dsc?`<div class="card-list-desc">${dsc}</div>`:''}
+      ${metaHTML(item)}
     </div>
     <div class="card-list-right">
-      ${item.discount_price?`<div class="card-list-oldprice">${sym}${item.price}</div>`:''}
-      <div class="card-list-price">${sym}${item.discount_price||item.price}</div>
+      <div>${priceHTML(item)}</div>
     </div>
     <div class="card-list-chevron">›</div>
   </div>`;
