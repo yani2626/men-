@@ -1581,7 +1581,7 @@ function buildAppearance(){
   const pg=document.getElementById('pat-grid');
   if(pg) pg.innerHTML=PATTERNS.map(p=>`
     <div class="pat-card${R?.bg_pattern===p.id?' sel':''}" data-pat="${p.id}" onclick="selPat('${p.id}')" 
-      style="${p.css};background-color:var(--bg3);color:rgba(128,128,128,.3)">
+      style="background-color:var(--bg3);${p.id!=='none'?p.css:''}">
       <div class="pat-lbl">${p.nm}</div>
     </div>`).join('');
 
@@ -1656,17 +1656,24 @@ function updPrev(){
   const atxt  = isDark(accent) ? '#fff' : '#111';
   const rName = R?.name || 'Restoran';
 
-  // Pattern CSS
-  const patCSS = {
-    none:     '',
-    dots:     `background-image:radial-gradient(circle,${dark?'rgba(255,255,255,.08)':'rgba(0,0,0,.06)'} 1px,transparent 1px);background-size:14px 14px`,
-    grid:     `background-image:linear-gradient(${dark?'rgba(255,255,255,.05)':'rgba(0,0,0,.04)'} 1px,transparent 1px),linear-gradient(90deg,${dark?'rgba(255,255,255,.05)':'rgba(0,0,0,.04)'} 1px,transparent 1px);background-size:18px 18px`,
-    diagonal: `background-image:repeating-linear-gradient(45deg,${dark?'rgba(255,255,255,.04)':'rgba(0,0,0,.04)'} 0,${dark?'rgba(255,255,255,.04)':'rgba(0,0,0,.04)'} 1px,transparent 0,transparent 50%);background-size:10px 10px`,
-    waves:    `background-image:repeating-radial-gradient(circle at 0 0,transparent 0,${dark?'rgba(255,255,255,.04)':'rgba(0,0,0,.03)'} 1px,transparent 2px);background-size:12px 12px`,
-    hexagon:  `background-image:url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='10,1 19,6 19,14 10,19 1,14 1,6' fill='none' stroke='${dark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.05)'}' stroke-width='1'/%3E%3C/svg%3E")`,
-    cross:    `background-image:url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 0v20M0 9h20' stroke='${dark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.05)'}' stroke-width='1'/%3E%3C/svg%3E")`,
-    noise:    `opacity:0.97`,
-  }[pat] || '';
+  // Pattern CSS — tüm 12 desen
+  const c1 = dark?'rgba(255,255,255,.09)':'rgba(0,0,0,.07)';
+  const c2 = dark?'rgba(255,255,255,.05)':'rgba(0,0,0,.04)';
+  const patMap = {
+    'none':      '',
+    'dots':      `background-image:radial-gradient(circle,${c1} 1.5px,transparent 1.5px);background-size:16px 16px`,
+    'dots-lg':   `background-image:radial-gradient(circle,${c1} 2.5px,transparent 2.5px);background-size:24px 24px`,
+    'grid':      `background-image:linear-gradient(${c1} 1px,transparent 1px),linear-gradient(90deg,${c1} 1px,transparent 1px);background-size:20px 20px`,
+    'grid-lg':   `background-image:linear-gradient(${c1} 1px,transparent 1px),linear-gradient(90deg,${c1} 1px,transparent 1px);background-size:32px 32px`,
+    'diagonal':  `background-image:repeating-linear-gradient(45deg,${c1} 0,${c1} 1px,transparent 0,transparent 8px);background-size:12px 12px`,
+    'diagonal2': `background-image:repeating-linear-gradient(-45deg,${c1} 0,${c1} 1px,transparent 0,transparent 8px);background-size:12px 12px`,
+    'hatch':     `background-image:repeating-linear-gradient(45deg,${c2} 0,${c2} 1px,transparent 0,transparent 8px),repeating-linear-gradient(-45deg,${c2} 0,${c2} 1px,transparent 0,transparent 8px);background-size:12px 12px`,
+    'stripes':   `background-image:repeating-linear-gradient(0deg,${c1} 0,${c1} 1px,transparent 0,transparent 12px);background-size:1px 12px`,
+    'waves':     `background-image:repeating-radial-gradient(circle at 0 0,transparent 0,${c1} 2px,transparent 3px);background-size:14px 14px`,
+    'zigzag':    `background-image:linear-gradient(135deg,${c1} 25%,transparent 25%),linear-gradient(225deg,${c1} 25%,transparent 25%),linear-gradient(45deg,${c1} 25%,transparent 25%),linear-gradient(315deg,${c1} 25%,transparent 25%);background-size:12px 6px`,
+    'brick':     `background-image:linear-gradient(${c1} 1px,transparent 1px),linear-gradient(90deg,${c2} 1px,transparent 1px);background-size:20px 10px`,
+  };
+  const patCSS = patMap[pat] || '';
 
   // Shadow CSS
   const shadowCSS = {
@@ -1731,10 +1738,11 @@ function updPrev(){
   }[layout] || '';
 
   const frame = document.getElementById('prev'); if(!frame) return;
+  const patStyle = patCSS ? patCSS+';background-color:'+primary : 'background-color:'+primary;
   frame.innerHTML = `
-  <div style="background:${primary};${patCSS};border-radius:${radius}px;overflow:hidden;font-family:'${font}',sans-serif;min-height:310px">
+  <div style="${patStyle};border-radius:${radius}px;overflow:hidden;font-family:'${font}',sans-serif;min-height:310px">
     <!-- Header -->
-    <div style="padding:10px;border-bottom:1px solid ${accent}20;background:${primary}">
+    <div style="padding:10px;border-bottom:1px solid ${accent}20;background-color:${primary}">
       <div style="display:flex;align-items:center;gap:7px">
         <div style="width:30px;height:30px;border-radius:7px;background:${accent};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:${atxt};flex-shrink:0">${rName[0]}</div>
         <div>
