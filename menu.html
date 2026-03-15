@@ -954,18 +954,17 @@ function applyTemplate(){
   document.body.classList.add(map[id]||'t-modern-minimal');
 
   // ── Renkler ──────────────────────────────────────────────
-  // Arka plan rengi: bg_color varsa bağımsız, yoksa primary_color
-  const bgColor = R.bg_color || R.primary_color;
-  if(bgColor) document.documentElement.style.setProperty('--bg', bgColor);
-  if(R.primary_color) document.documentElement.style.setProperty('--header-bg', R.primary_color);
+  if(R.primary_color){
+    document.documentElement.style.setProperty('--bg', R.primary_color);
+    document.documentElement.style.setProperty('--header-bg', R.primary_color);
+  }
   if(R.accent_color){
     document.documentElement.style.setProperty('--accent', R.accent_color);
     const dark = isDark(R.accent_color);
     document.documentElement.style.setProperty('--accent-text', dark?'#fff':'#111');
     document.documentElement.style.setProperty('--cat-pill-active', R.accent_color);
     document.documentElement.style.setProperty('--cat-pill-active-text', dark?'#fff':'#111');
-    // Pattern rengi accent'e uygun
-    document.documentElement.style.setProperty('--pat-color', dark?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)');
+    document.documentElement.style.setProperty('--pat-color', isDark(R.primary_color||'#fff')?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)');
   }
 
   // ── Arka Plan Deseni ──────────────────────────────────────
@@ -1002,20 +1001,6 @@ function applyTemplate(){
     colored:`0 4px 18px ${R.accent_color||'#666'}50`,
   };
   document.documentElement.style.setProperty('--card-shadow', shadowMap[R.card_shadow||'soft']||shadowMap.soft);
-
-  // ── Pill/Tab Şekli ────────────────────────────────────────
-  const ps = R.pill_shape||'rounded';
-  const pillStyle = document.createElement('style');
-  pillStyle.id='pill-style';
-  if(ps==='square'){
-    pillStyle.textContent=`.cat-pill{border-radius:6px!important}.cat-tab{border-radius:0!important}`;
-  } else if(ps==='underline'){
-    pillStyle.textContent=`.cat-pill{border-radius:0!important;background:transparent!important;border-bottom:2px solid transparent!important;padding-bottom:6px!important}
-    .cat-pill.active{background:transparent!important;border-bottom-color:var(--accent)!important;color:var(--accent)!important}`;
-  } else {
-    pillStyle.textContent=`.cat-pill{border-radius:99px!important}`;
-  }
-  document.head.appendChild(pillStyle);
 
   // ── Fiyat Etiketi Stili ───────────────────────────────────
   window.PRICE_STYLE = R.price_style||'plain';
