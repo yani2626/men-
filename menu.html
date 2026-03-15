@@ -864,22 +864,44 @@ async function init(){
     document.getElementById('ls').classList.add('out');
     setTimeout(()=>document.getElementById('ls')?.remove(),700);
   }catch(e){
-    console.error('Menu init error:', e);
-    showErr('Menü yüklenirken hata oluştu.<br><small style="opacity:.6">'+e.message+'</small>');
+    console.error('❌ Menu init error:', e);
+    showErr('Menü yüklenirken hata oluştu.<br><br><small style="opacity:.7;font-size:12px;line-height:1.6">'+e.message+'<br><br>Konsolda (F12) detaylı log var.</small>');
   }
 }
 
 async function loadRestaurant(){
-  // Don't filter on is_active — null values (old records) would be excluded
+  // DEBUG — konsolda görünür, deploy'da silebilirsin
+  console.log('🔍 Aranıyor slug:', SLUG);
+  console.log('🌐 Full URL:', location.href);
+
+  if(!SLUG){
+    throw new Error('URL\'de ?r= parametresi yok. Doğru link: menu.html?r=RESTORAN-SLUG');
+  }
+
   const{data,error}=await sb.from('restaurants').select('*').eq('slug',SLUG).single();
-  if(error||!data) throw new Error('Restoran bulunamadı: '+SLUG);
-  // If explicitly suspended (is_active = false), show message
-  if(data.is_active===false) throw new Error('Bu menü şu an aktif değil.');
+
+  console.log('📦 Supabase yanıtı:', {data, error});
+
+  if(error){
+    // PGRST116 = no rows found
+    if(error.code==='PGRST116'){
+      throw new Error(`"${SLUG}" slug'ına sahip restoran bulunamadı. Supabase'deki slug değeriyle eşleşiyor mu?`);
+    }
+    throw new Error('Supabase hatası: '+error.message+' (code: '+error.code+')');
+  }
+  if(!data){
+    throw new Error(`Restoran bulunamadı: slug="${SLUG}"`);
+  }
+  if(data.is_active===false){
+    throw new Error('Bu menü şu an aktif değil.');
+  }
+
   R=data;
   cardLayout = R.card_layout||'classic';
   catStyle   = R.category_style||'pills';
   lang       = R.menu_language==='en' ? 'en' : 'tr';
   document.title = R.name+' — Menü';
+  console.log('✅ Restoran yüklendi:', R.name, '| slug:', R.slug);
 }
 
 async function loadCats(){
@@ -1233,8 +1255,7 @@ function toggleAllergen(el, id){
 }
 
 function applyAllergens(){
-  hiddenAllergens=[...document.querySelectorAll('.allergen-chip.selected')].map(el=>el.dataset?el.getAttribute('onclick')?.match(/'([^']+)'/)?.[1]:'').filter(Boolean);
-  // re-extract properly
+  // Seçili allerjen chip'lerinden ID'leri topla
   hiddenAllergens=[];
   document.querySelectorAll('.allergen-chip.selected').forEach(el=>{
     const m=el.getAttribute('onclick')?.match(/'([^']+)'/);
@@ -1278,14 +1299,16 @@ function clearSearch(){
 // WAITER CALL
 // ═══════════════════════════════════════════════
 function setupFABs(){
-  const showW=R.garson_cagir_enabled!==false;
-  const showR=R.degerlendir_enabled!==false&&R.google_maps_review_url;
-  const fw=document.getElementById('fab-waiter');
-  const fr=document.getElementById('fab-review');
-  const fp=document.getElementById('fab-pdf');
-  if(showW){ fw.style.display='flex'; document.getElementById('fab-waiter-txt').textContent=t('waiterCall'); }
-  if(showR){ fr.style.display='flex'; document.getElementById('fab-review-txt').textContent=t('review'); }
+  const showW = R.garson_cagir_enabled !== false;
+  const showR = R.degerlendir_enabled  !== false;  // URL olmasa da göster
+  const fw = document.getElementById('fab-waiter');
+  const fr = document.getElementById('fab-review');
+  const fp = document.getElementById('fab-pdf');
+
+  if(showW && fw){ fw.style.display='flex'; document.getElementById('fab-waiter-txt').textContent=t('waiterCall'); }
+  if(showR && fr){ fr.style.display='flex'; document.getElementById('fab-review-txt').textContent=t('review'); }
   if(fp) fp.style.display='flex';
+
   document.getElementById('fab-bar').classList.add('show');
 }
 
@@ -1337,8 +1360,10 @@ function closeWaiter(){ document.getElementById('waiter-overlay').classList.remo
 
 function openReview(){
   if(R.google_maps_review_url){
-    sb.from('review_clicks').insert({restaurant_id:R.id,table_number:selectedTable});
+    sb.from('review_clicks').insert({restaurant_id:R.id,table_number:selectedTable}).catch(()=>{});
     window.open(R.google_maps_review_url,'_blank');
+  } else {
+    showToast('⚠️ Google Maps linki henüz eklenmemiş');
   }
 }
 
